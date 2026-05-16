@@ -3,7 +3,7 @@ services:
     name: afriswarm-web
     env: docker
     region: frankfurt
-    plan: starter
+    plan: free
     dockerfilePath: app/Dockerfile
     dockerContext: app
     envVars:
@@ -12,9 +12,15 @@ services:
           name: afriswarm-db
           property: connectionString
       - key: REDIS_URL
-        value: "redis://redishost:6379" # Replace with actual managed Redis URL
-      - key: KAFKA_BOOTSTRAP_SERVERS
-        value: "kafkahost:9092" # Replace with actual managed Kafka URL
+        value: "rediss://default:YOUR_PASSWORD@your-upstash-endpoint.upstash.io:6379" # Replace with free Upstash Redis URL
+      - key: KAFKA_ENABLED
+        value: "false" # Disabled to keep it 100% free (Kafka is heavy)
+      - key: NEO4J_URI
+        value: "neo4j+s://your-instance.databases.neo4j.io" # Replace with free Neo4j Aura DB
+      - key: NEO4J_USER
+        value: "neo4j"
+      - key: NEO4J_PASSWORD
+        sync: false # Set in Render Dashboard
       - key: SECRET_KEY
         generateValue: true
       - key: LLM_PROVIDER
@@ -27,4 +33,4 @@ databases:
     databaseName: afriswarm
     user: afriswarm
     region: frankfurt
-    plan: starter
+    plan: free
