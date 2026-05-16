@@ -30,6 +30,13 @@ class Settings(BaseSettings):
     RBAC_ENABLED: bool = True
     AUDIT_LOG_ENABLED: bool = True
     PII_REDACTION_ENABLED: bool = True
+    ALLOWED_ORIGINS: List[str] = ["http://localhost:3000", "http://localhost:8000"]
+
+    # Default Credentials (override via ENV in production)
+    ADMIN_USERNAME: str = "admin"
+    ADMIN_PASSWORD: str = "afriswarm2026"
+    OPERATOR_USERNAME: str = "operator"
+    OPERATOR_PASSWORD: str = "operator2026"
 
     # Database - PostgreSQL
     DATABASE_URL: str = "postgresql://afriswarm:secure_password@postgres:5432/afriswarm"

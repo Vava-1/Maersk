@@ -29,13 +29,33 @@ export default function App() {
   const [currentView, setCurrentView] = useState('command-center');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(true);
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 1024);
     check();
     window.addEventListener('resize', check);
-    return () => window.removeEventListener('resize', check);
+    
+    // Simulate power-up sequence
+    const timer = setTimeout(() => setIsInitializing(false), 1500);
+    
+    return () => {
+      window.removeEventListener('resize', check);
+      clearTimeout(timer);
+    };
   }, []);
+
+  const handleNavigate = (view: string) => {
+    if (view === currentView) return;
+    setIsTransitioning(true);
+    setTimeout(() => {
+      setCurrentView(view);
+      setIsTransitioning(false);
+      if (isMobile) setSidebarCollapsed(true);
+    }, 300);
+  };
+
 
   const renderView = () => {
     switch (currentView) {
@@ -53,6 +73,18 @@ export default function App() {
     }
   };
 
+  if (isInitializing) {
+    return (
+      <div className="min-h-screen bg-[hsl(220,20%,6%)] flex items-center justify-center noise-bg">
+        <div className="flex flex-col items-center gap-6 glass-power p-12 rounded-2xl animate-glow">
+          <div className="w-24 h-24 rounded-full border-t-4 border-[hsl(195,70%,55%)] border-r-4 border-r-transparent animate-spin" />
+          <h1 className="text-3xl font-bold text-gradient tracking-widest">AFRISWARM</h1>
+          <p className="text-[hsl(215,20%,55%)] font-mono animate-pulse">Initializing Neural Core...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[hsl(220,20%,6%)] text-[hsl(210,40%,96%)] noise-bg">
       {/* Mobile overlay */}
@@ -69,10 +101,7 @@ export default function App() {
       }`}>
         <Sidebar
           currentView={currentView}
-          onNavigate={(view) => {
-            setCurrentView(view);
-            if (isMobile) setSidebarCollapsed(true);
-          }}
+          onNavigate={handleNavigate}
           isCollapsed={!isMobile && sidebarCollapsed}
           onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
         />
@@ -100,7 +129,7 @@ export default function App() {
         )}
 
         {/* Content */}
-        <div className="p-4 lg:p-6 max-w-[1920px] mx-auto">
+        <div className={`p-4 lg:p-6 max-w-[1920px] mx-auto transition-all duration-300 ${isTransitioning ? 'opacity-0 scale-[0.98]' : 'opacity-100 scale-100'}`}>
           {renderView()}
         </div>
       </main>

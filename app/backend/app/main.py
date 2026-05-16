@@ -10,11 +10,13 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Depends, status, BackgroundTasks
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Depends, status, BackgroundTasks, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
+import os
 
 from .config import settings
 from .state import (
@@ -210,11 +212,25 @@ app = FastAPI(
 # CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=settings.ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Global API Rate Limiter Middleware
+@app.middleware("http")
+async def rate_limit_middleware(request: Request, call_next):
+    # Only rate limit API paths
+    if request.url.path.startswith("/api/") and not request.url.path.startswith("/api/v1/auth"):
+        client_ip = request.client.host if request.client else "unknown"
+        if not api_rate_limiter.is_allowed(client_ip):
+            return JSONResponse(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                content={"detail": "Too many requests. Please slow down."}
+            )
+    return await call_next(request)
+
 
 
 # ───────────────────────────────────────────────
@@ -255,9 +271,12 @@ async def swarm_status():
 # ───────────────────────────────────────────────
 
 @app.post("/api/v1/auth/login")
-async def login(request: LoginRequest):
-    # Demo authentication - in production, verify against database
-    if request.username == "admin" and request.password == "afriswarm2026":
+async def login(request: LoginRequest, req: Request):
+    client_ip = req.client.host if req.client else "unknown"
+    if not auth_rate_limiter.is_allowed(f"auth_{client_ip}"):
+        raise HTTPException(status_code=429, detail="Too many login attempts")
+
+    if request.username == settings.ADMIN_USERNAME and request.password == settings.ADMIN_PASSWORD:
         token = create_access_token({
             "sub": request.username,
             "role": "admin",
@@ -265,7 +284,7 @@ async def login(request: LoginRequest):
         })
         return {"access_token": token, "token_type": "bearer", "role": "admin"}
     
-    if request.username == "operator" and request.password == "operator2026":
+    if request.username == settings.OPERATOR_USERNAME and request.password == settings.OPERATOR_PASSWORD:
         token = create_access_token({
             "sub": request.username,
             "role": "operator",
@@ -274,6 +293,7 @@ async def login(request: LoginRequest):
         return {"access_token": token, "token_type": "bearer", "role": "operator"}
     
     raise HTTPException(status_code=401, detail="Invalid credentials")
+
 
 
 # ───────────────────────────────────────────────
@@ -547,7 +567,13 @@ async def get_port_detail(port_id: str):
 # ───────────────────────────────────────────────
 
 @app.websocket("/ws/{client_id}")
-async def websocket_endpoint(websocket: WebSocket, client_id: str):
+async def websocket_endpoint(websocket: WebSocket, client_id: str, token: Optional[str] = None):
+    # Require authentication for websocket
+    if not token or not decode_access_token(token):
+        await websocket.accept()
+        await websocket.close(code=status.WS_1008_POLICY_VIOLATION, reason="Unauthorized")
+        return
+
     await manager.connect(websocket, client_id)
     try:
         while True:
@@ -658,6 +684,23 @@ async def run_demo_scenario(scenario_id: str):
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# ───────────────────────────────────────────────
+# Static Frontend Serving
+# ───────────────────────────────────────────────
+static_dir = os.path.join(os.path.dirname(__file__), "..", "..", "static")
+if os.path.exists(static_dir):
+    app.mount("/assets", StaticFiles(directory=os.path.join(static_dir, "assets")), name="assets")
+    
+    @app.get("/{catchall:path}")
+    async def serve_react_app(catchall: str):
+        # Serve index.html for all non-API paths to support React Router
+        if not catchall.startswith("api/"):
+            index_path = os.path.join(static_dir, "index.html")
+            if os.path.exists(index_path):
+                return FileResponse(index_path)
+        raise HTTPException(status_code=404, detail="Not Found")
 
 
 # ───────────────────────────────────────────────
