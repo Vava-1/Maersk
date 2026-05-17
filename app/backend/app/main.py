@@ -354,17 +354,21 @@ async def get_agent(agent_id: str):
 
 @app.post("/api/v1/agents/{agent_id}/chat")
 async def chat_with_agent(agent_id: str, request: AgentQueryRequest):
-    """Chat with a specific agent."""
+    """Chat with a specific agent (Swarm Integrated)."""
     if agent_id not in _registry.agents:
         raise HTTPException(status_code=404, detail=f"Agent {agent_id} not found")
     
-    # Update context
-    runtime.state["context"] = request.context
-    runtime.state["context"]["query"] = request.query
-    
     agent = _registry.agents[agent_id]
+    
+    # Update state for swarm execution
+    runtime.state["user_query"] = f"[Direct Message to {agent.agent_name}]: {request.query}"
+    runtime.state["context"] = request.context
+    
     try:
-        result = await agent.process(runtime.state)
+        # Route through the full swarm so the agent can gather context from others
+        result = await swarm_graph.ainvoke(runtime.state)
+        runtime.state = result
+        
         return {
             "agent_id": agent_id,
             "response": result.get("final_response", {}),

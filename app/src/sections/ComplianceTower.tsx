@@ -4,6 +4,7 @@ import {
   FileText, RefreshCw, Shield, Globe
 } from 'lucide-react';
 import type { ComplianceCheck } from '@/types/agents';
+import { AgentChatBox } from '@/components/ui/AgentChatBox';
 
 const MOCK_CHECKS: ComplianceCheck[] = [
   {
@@ -172,53 +173,61 @@ export function ComplianceTower() {
         ))}
       </div>
 
-      {/* Compliance Table */}
-      <div className="card-elevated rounded-lg overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-[hsl(220,14%,18%)]">
-                <th className="text-left px-4 py-3 text-[10px] font-semibold text-[hsl(215,20%,50%)] uppercase">Regulation</th>
-                <th className="text-left px-4 py-3 text-[10px] font-semibold text-[hsl(215,20%,50%)] uppercase">Category</th>
-                <th className="text-left px-4 py-3 text-[10px] font-semibold text-[hsl(215,20%,50%)] uppercase">Status</th>
-                <th className="text-left px-4 py-3 text-[10px] font-semibold text-[hsl(215,20%,50%)] uppercase">Risk</th>
-                <th className="text-left px-4 py-3 text-[10px] font-semibold text-[hsl(215,20%,50%)] uppercase">Confidence</th>
-                <th className="text-left px-4 py-3 text-[10px] font-semibold text-[hsl(215,20%,50%)] uppercase">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[hsl(220,14%,15%)]">
-              {filtered.map((check) => (
-                <tr key={check.check_id} className="hover:bg-[hsl(220,14%,10%)] transition-colors">
-                  <td className="px-4 py-3">
-                    <div className="text-xs text-white font-medium">{check.regulation_name}</div>
-                    <div className="text-[10px] text-[hsl(215,20%,50%)] flex items-center gap-1 mt-0.5">
-                      <Globe className="w-2.5 h-2.5" /> {check.jurisdiction}
-                    </div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className="text-[10px] px-2 py-0.5 bg-[hsl(220,14%,15%)] rounded text-[hsl(215,20%,65%)] capitalize">
-                      {check.regulation_category}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3"><StatusBadge status={check.status} /></td>
-                  <td className="px-4 py-3"><RiskBadge level={check.risk_level} /></td>
-                  <td className="px-4 py-3">
-                    <div className="text-xs font-mono text-white">{((check.confidence?.score || 0) * 100).toFixed(0)}%</div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex gap-1.5">
-                      <button className="p-1 rounded bg-[hsl(220,14%,15%)] hover:bg-[hsl(220,14%,20%)] text-[hsl(215,20%,55%)] hover:text-white transition-colors">
-                        <FileText className="w-3 h-3" />
-                      </button>
-                      <button className="p-1 rounded bg-[hsl(220,14%,15%)] hover:bg-[hsl(220,14%,20%)] text-[hsl(215,20%,55%)] hover:text-white transition-colors">
-                        <RefreshCw className="w-3 h-3" />
-                      </button>
-                    </div>
-                  </td>
+      {/* Main Content Area */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 h-[calc(100vh-280px)] min-h-[500px]">
+        {/* Compliance Table */}
+        <div className="lg:col-span-2 overflow-hidden card-elevated rounded-lg flex flex-col">
+          <div className="flex-1 overflow-auto scrollbar-thin">
+            <table className="w-full">
+              <thead className="sticky top-0 bg-[hsl(220,14%,12%)] z-10">
+                <tr className="border-b border-[hsl(220,14%,18%)]">
+                  <th className="text-left px-4 py-3 text-[10px] font-semibold text-[hsl(215,20%,50%)] uppercase">Regulation</th>
+                  <th className="text-left px-4 py-3 text-[10px] font-semibold text-[hsl(215,20%,50%)] uppercase">Category</th>
+                  <th className="text-left px-4 py-3 text-[10px] font-semibold text-[hsl(215,20%,50%)] uppercase">Status</th>
+                  <th className="text-left px-4 py-3 text-[10px] font-semibold text-[hsl(215,20%,50%)] uppercase">Risk</th>
+                  <th className="text-left px-4 py-3 text-[10px] font-semibold text-[hsl(215,20%,50%)] uppercase">Confidence</th>
+                  <th className="text-left px-4 py-3 text-[10px] font-semibold text-[hsl(215,20%,50%)] uppercase">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-[hsl(220,14%,15%)]">
+                {filtered.map((check) => (
+                  <tr key={check.check_id} className="hover:bg-[hsl(220,14%,10%)] transition-colors">
+                    <td className="px-4 py-3">
+                      <div className="text-xs text-white font-medium">{check.regulation_name}</div>
+                      <div className="text-[10px] text-[hsl(215,20%,50%)] flex items-center gap-1 mt-0.5">
+                        <Globe className="w-2.5 h-2.5" /> {check.jurisdiction}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="text-[10px] px-2 py-0.5 bg-[hsl(220,14%,15%)] rounded text-[hsl(215,20%,65%)] capitalize">
+                        {check.regulation_category}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3"><StatusBadge status={check.status} /></td>
+                    <td className="px-4 py-3"><RiskBadge level={check.risk_level} /></td>
+                    <td className="px-4 py-3">
+                      <div className="text-xs font-mono text-white">{((check.confidence?.score || 0) * 100).toFixed(0)}%</div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex gap-1.5">
+                        <button className="p-1 rounded bg-[hsl(220,14%,15%)] hover:bg-[hsl(220,14%,20%)] text-[hsl(215,20%,55%)] hover:text-white transition-colors">
+                          <FileText className="w-3 h-3" />
+                        </button>
+                        <button className="p-1 rounded bg-[hsl(220,14%,15%)] hover:bg-[hsl(220,14%,20%)] text-[hsl(215,20%,55%)] hover:text-white transition-colors">
+                          <RefreshCw className="w-3 h-3" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Agent Chat */}
+        <div className="h-full">
+          <AgentChatBox agentId="compliance" agentName="Compliance Tower" />
         </div>
       </div>
     </div>

@@ -10,17 +10,33 @@ import { AfricaSpecialist } from '@/sections/AfricaSpecialist';
 import { SwarmChat } from '@/sections/SwarmChat';
 import { DemoScenarios } from '@/sections/DemoScenarios';
 
+import { AgentChatBox } from '@/components/ui/AgentChatBox';
+
 function RouteOptimizerFallback() {
   return (
-    <div className="flex flex-col items-center justify-center h-96 card-elevated rounded-lg">
-      <div className="w-16 h-16 rounded-xl bg-[hsl(195,70%,55%/0.1)] flex items-center justify-center mb-4">
-        <span className="text-3xl">🗺️</span>
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-bold text-white">Route & Logistics Optimizer</h2>
+          <p className="text-xs text-[hsl(215,20%,50%)] mt-0.5">Interact with the Route Optimizer agent directly.</p>
+        </div>
       </div>
-      <h3 className="text-lg font-semibold text-white mb-2">Route & Logistics Optimizer</h3>
-      <p className="text-sm text-[hsl(215,20%,55%)] max-w-md text-center">
-        Use the Swarm Chat interface to request route optimization.
-        Example: &ldquo;Find the best route from Shanghai to Mombasa with low emissions preference&rdquo;
-      </p>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 h-[calc(100vh-140px)] min-h-[500px]">
+        {/* Placeholder Info */}
+        <div className="lg:col-span-2 flex flex-col items-center justify-center card-elevated rounded-lg p-6">
+          <div className="w-16 h-16 rounded-xl bg-[hsl(195,70%,55%/0.1)] flex items-center justify-center mb-4 shadow-lg">
+            <span className="text-3xl">🗺️</span>
+          </div>
+          <h3 className="text-lg font-semibold text-white mb-2">Route Optimizer Data Layer</h3>
+          <p className="text-sm text-[hsl(215,20%,55%)] max-w-md text-center">
+            Map visualizations and route alternatives will populate here based on your conversation with the agent.
+          </p>
+        </div>
+        {/* Agent Chat */}
+        <div className="h-full">
+          <AgentChatBox agentId="route_optimizer" agentName="Route Optimizer" />
+        </div>
+      </div>
     </div>
   );
 }

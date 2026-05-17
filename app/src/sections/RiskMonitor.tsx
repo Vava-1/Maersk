@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { getRiskEvents } from '@/hooks/useApi';
 import type { DisruptionEvent } from '@/types/agents';
+import { AgentChatBox } from '@/components/ui/AgentChatBox';
 
 function RiskBadge({ level }: { level: string }) {
   const colors: Record<string, string> = {
@@ -195,11 +196,23 @@ export function RiskMonitor() {
         ))}
       </div>
 
-      {/* Events */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {filtered.map(event => (
-          <EventCard key={event.event_id} event={event} />
-        ))}
+      {/* Main Content Area */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 h-[calc(100vh-280px)] min-h-[500px]">
+        
+        {/* Events List */}
+        <div className="lg:col-span-2 overflow-y-auto pr-2 scrollbar-thin space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {filtered.map(event => (
+              <EventCard key={event.event_id} event={event} />
+            ))}
+          </div>
+        </div>
+
+        {/* Agent Chat */}
+        <div className="h-full">
+          <AgentChatBox agentId="geopolitical_risk" agentName="Geopolitical Risk Monitor" />
+        </div>
+
       </div>
     </div>
   );
