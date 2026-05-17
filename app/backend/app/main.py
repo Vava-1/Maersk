@@ -121,9 +121,17 @@ class SwarmRuntime:
         return (datetime.utcnow() - self.started_at).total_seconds()
     
     async def start_monitoring(self):
-        """Start background monitoring — 2s cycle for near real-time health."""
+        """Start background monitoring — 2s cycle with System Guardian auto-healing."""
         while self.is_running:
             try:
+                # ── ACTIVATE SYSTEM GUARDIAN HEALTH & AUTO-HEALING CYCLE ──
+                guardian = _registry.agents.get("guardian")
+                if guardian:
+                    try:
+                        await guardian._monitoring_cycle(self.state)
+                    except Exception as ge:
+                        logger.error(f"System Guardian monitoring cycle failed: {ge}")
+
                 agent_health = self.state.get("agent_health", {})
                 
                 # Update system vitals

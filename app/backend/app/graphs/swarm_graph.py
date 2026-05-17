@@ -39,10 +39,37 @@ class AgentRegistry:
     
     def __init__(self):
         self.agents: Dict[str, Any] = {}
+        from ..agents.base import AfriSwarmAgent
+        AfriSwarmAgent._REGISTRY = self
         self._initialize_agents()
     
     def _initialize_agents(self):
-        """Initialize all 14 agents with default configuration."""
+        """Initialize all 14 agents with default LLM configuration."""
+        llm = None
+        if settings.OPENAI_API_KEY:
+            try:
+                from langchain_openai import ChatOpenAI
+                llm = ChatOpenAI(
+                    api_key=settings.OPENAI_API_KEY,
+                    model_name=settings.FAST_MODEL or "gpt-4o-mini",
+                    temperature=0.2,
+                )
+                logger.info("Real OpenAI LLM initialized for agents")
+            except Exception as e:
+                logger.error(f"Failed to initialize OpenAI LLM: {e}")
+        elif settings.LLM_PROVIDER == "local" or settings.LOCAL_MODEL_URL:
+            try:
+                from langchain_openai import ChatOpenAI
+                llm = ChatOpenAI(
+                    base_url=settings.LOCAL_MODEL_URL + "/v1" if not settings.LOCAL_MODEL_URL.endswith("/v1") else settings.LOCAL_MODEL_URL,
+                    api_key="ollama",
+                    model_name=settings.FAST_MODEL or "llama3.1",
+                    temperature=0.2,
+                )
+                logger.info(f"Local Ollama LLM initialized at {settings.LOCAL_MODEL_URL} for agents")
+            except Exception as e:
+                logger.error(f"Failed to initialize Local LLM: {e}")
+
         agent_classes = [
             ("orchestrator", OrchestratorAgent),
             ("guardian", GuardianAgent),
@@ -62,7 +89,7 @@ class AgentRegistry:
         
         for agent_id, agent_class in agent_classes:
             try:
-                self.agents[agent_id] = agent_class()
+                self.agents[agent_id] = agent_class(llm=llm)
                 logger.info(f"Agent initialized: {agent_id}")
             except Exception as e:
                 logger.error(f"Failed to initialize agent {agent_id}: {e}")
@@ -70,10 +97,12 @@ class AgentRegistry:
                 self.agents[agent_id] = agent_class.__new__(agent_class)
                 self.agents[agent_id].agent_id = agent_id
                 self.agents[agent_id].agent_name = agent_id
+                self.agents[agent_id].llm = llm
 
 
 # Global registry
 _registry = AgentRegistry()
+
 
 
 # ───────────────────────────────────────────────
