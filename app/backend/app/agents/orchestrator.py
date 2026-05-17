@@ -486,7 +486,7 @@ Always provide:
     ) -> Dict[str, Any]:
         """Simulate agent execution for the orchestrator."""
         agent = task.assigned_agent_id
-        health = agent_health.get(agent, AgentHealth(agent_id=agent, agent_name=agent))
+        health = agent_health.get(agent, AgentHealth(agent_id=agent, agent_name=agent, status=AgentStatus.IDLE))
         
         import random
         base_confidence = health.consciousness_score * random.uniform(0.7, 1.0)
