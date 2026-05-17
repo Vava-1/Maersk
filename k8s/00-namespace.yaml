@@ -1,0 +1,8 @@
+# AfriSwarm — Kubernetes Namespace
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: afriswarm
+  labels:
+    app.kubernetes.io/name: afriswarm
+    tier: production

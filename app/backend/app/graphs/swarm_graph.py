@@ -7,6 +7,7 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional, TypedDict
 
 from langgraph.graph import StateGraph, END
+from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 
 from ..state import SwarmState, AgentHealth, AgentStatus, SystemVitals, TaskStatus
 from ..config import settings
@@ -319,15 +320,13 @@ def build_swarm_graph() -> StateGraph:
                 "end": "analytics",
             }
         )
-    
     # Analytics -> END
     workflow.add_edge("analytics", END)
-    
-    return workflow.compile()
 
+    return workflow
 
-# Global graph instance
-swarm_graph = build_swarm_graph()
+# Global uncompiled graph
+swarm_workflow = build_swarm_graph()
 
 
 # ───────────────────────────────────────────────

@@ -8,13 +8,16 @@ import {
   FormProvider,
   useFormContext,
   useFormState,
-  type ControllerProps,
-  type FieldPath,
-  type FieldValues,
 } from "react-hook-form"
 
 import { cn } from "@/lib/utils"
 import { Label } from "@/components/ui/label"
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type FieldValues = Record<string, any>
+type FieldPath<T extends FieldValues> = keyof T & string
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type ControllerProps<TFieldValues extends FieldValues = FieldValues, TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>> = { _fv?: TFieldValues; _n?: TName; [key: string]: any }
 
 const Form = FormProvider
 
@@ -41,6 +44,7 @@ const FormField = <
     </FormFieldContext.Provider>
   )
 }
+
 
 const useFormField = () => {
   const fieldContext = React.useContext(FormFieldContext)

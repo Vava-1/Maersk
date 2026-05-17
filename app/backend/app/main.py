@@ -24,7 +24,7 @@ from .state import (
     AgentMessage, DisruptionEvent, RouteAlternative, ComplianceCheck,
     ConfidenceScore, ROIMetric, KnowledgeEntry
 )
-from .graphs.swarm_graph import swarm_graph, initialize_swarm_state, _registry
+from .graphs.swarm_graph import swarm_workflow, initialize_swarm_state, _registry
 from .services.websocket import manager
 from .utils.logging import get_logger, AgentLogger
 from .utils.security import (
@@ -121,38 +121,60 @@ class SwarmRuntime:
         return (datetime.utcnow() - self.started_at).total_seconds()
     
     async def start_monitoring(self):
-        """Start background monitoring."""
+        """Start background monitoring — 2s cycle for near real-time health."""
         while self.is_running:
             try:
+                agent_health = self.state.get("agent_health", {})
+                
                 # Update system vitals
                 vitals = self.state.get("system_vitals", SystemVitals())
                 vitals.overall_health_score = self._calculate_health()
                 vitals.active_agents = sum(
-                    1 for h in self.state.get("agent_health", {}).values()
+                    1 for h in agent_health.values()
                     if h.status not in [AgentStatus.OFFLINE, AgentStatus.ERROR]
                 )
                 vitals.total_agents = 14
                 vitals.uptime_hours = self.uptime_seconds / 3600
+                vitals.swarm_consciousness_index = self._calculate_consciousness()
                 vitals.timestamp = datetime.utcnow()
-                
                 self.state["system_vitals"] = vitals
-                
-                # Broadcast vitals via WebSocket
+
+                # Build per-agent health snapshot
+                agents_snapshot = {}
+                for agent_id, h in agent_health.items():
+                    agent_obj = _registry.agents.get(agent_id)
+                    if agent_obj:
+                        live_health = agent_obj.health
+                        agent_health[agent_id] = live_health
+                        agents_snapshot[agent_id] = {
+                            "status": live_health.status.value if hasattr(live_health.status, "value") else str(live_health.status),
+                            "consciousness": round(live_health.consciousness_score, 3),
+                            "tasks_completed": live_health.total_tasks_completed,
+                            "tasks_failed": live_health.total_tasks_failed,
+                            "avg_response_ms": round(live_health.average_response_time_ms, 1),
+                            "uptime_seconds": round(live_health.uptime_seconds, 0),
+                            "consecutive_failures": live_health.consecutive_failures,
+                        }
+
+                # Broadcast enriched vitals via WebSocket
                 try:
-                    await manager.broadcast_vitals({
+                    await manager.broadcast_swarm("vitals_update", {
                         "overall_health": vitals.overall_health_score,
                         "active_agents": vitals.active_agents,
+                        "total_agents": 14,
                         "consciousness": vitals.swarm_consciousness_index,
                         "tasks_in_progress": vitals.tasks_in_progress,
-                        "uptime_hours": vitals.uptime_hours,
+                        "uptime_hours": round(vitals.uptime_hours, 3),
+                        "agents": agents_snapshot,
                     })
                 except Exception:
                     pass
-                
-                await asyncio.sleep(5)  # 5-second monitoring cycle
+
+                await asyncio.sleep(2)
             except Exception as e:
                 logger.error(f"Monitoring error: {e}")
-                await asyncio.sleep(10)
+                await asyncio.sleep(5)
+
     
     def _calculate_health(self) -> float:
         health_scores = []
@@ -172,6 +194,15 @@ class SwarmRuntime:
         
         return round(sum(health_scores) / max(len(health_scores), 1), 3)
 
+    def _calculate_consciousness(self) -> float:
+        scores = [
+            h.consciousness_score
+            for h in self.state.get("agent_health", {}).values()
+            if h.status not in [AgentStatus.OFFLINE, AgentStatus.ERROR]
+        ]
+        return round(sum(scores) / max(len(scores), 1), 3)
+
+
 
 # Global runtime
 runtime = SwarmRuntime()
@@ -180,10 +211,38 @@ runtime = SwarmRuntime()
 # ───────────────────────────────────────────────
 # Lifespan
 # ───────────────────────────────────────────────
+from psycopg_pool import AsyncConnectionPool
+from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
+
+pool = None
+swarm_graph = None
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    global pool, swarm_graph
     logger.info(f"=== {settings.APP_NAME} v{settings.APP_VERSION} starting ===")
     
+    db_uri = os.getenv("DATABASE_URL", "postgresql://afriswarm:enterprise_password@postgres:5432/afriswarm_db")
+    
+    try:
+        pool = AsyncConnectionPool(
+            conninfo=db_uri,
+            max_size=20,
+            kwargs={"autocommit": True, "prepare_threshold": 0},
+        )
+        await pool.open()
+        
+        checkpointer = AsyncPostgresSaver(pool)
+        await checkpointer.setup()
+        
+        swarm_graph = swarm_workflow.compile(checkpointer=checkpointer)
+        logger.info("Swarm Graph compiled with Postgres Checkpointer.")
+    except Exception as e:
+        logger.error(f"Failed to connect to Postgres: {e}")
+        # Fallback to in-memory compilation if DB not available (useful for local dev without docker)
+        swarm_graph = swarm_workflow.compile()
+        logger.warning("Falling back to stateless compilation.")
+
     # Start background monitoring
     monitoring_task = asyncio.create_task(runtime.start_monitoring())
     
@@ -193,6 +252,8 @@ async def lifespan(app: FastAPI):
     logger.info("=== AfriSwarm shutting down ===")
     runtime.is_running = False
     monitoring_task.cancel()
+    if pool:
+        await pool.close()
     try:
         await monitoring_task
     except asyncio.CancelledError:
@@ -365,8 +426,9 @@ async def chat_with_agent(agent_id: str, request: AgentQueryRequest):
     runtime.state["context"] = request.context
     
     try:
+        config = {"configurable": {"thread_id": f"agent_{agent_id}_{request.query[:10]}"}}
         # Route through the full swarm so the agent can gather context from others
-        result = await swarm_graph.ainvoke(runtime.state)
+        result = await swarm_graph.ainvoke(runtime.state, config)
         runtime.state = result
         
         return {
@@ -415,7 +477,8 @@ async def swarm_chat(request: ChatRequest):
         runtime.state["iteration_count"] = 0
         
         # Execute through LangGraph
-        result = await swarm_graph.ainvoke(runtime.state)
+        config = {"configurable": {"thread_id": f"chat_{trace_id}"}}
+        result = await swarm_graph.ainvoke(runtime.state, config)
         
         # Update runtime state
         runtime.state = result

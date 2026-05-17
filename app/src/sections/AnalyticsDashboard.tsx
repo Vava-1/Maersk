@@ -123,7 +123,7 @@ export function AnalyticsDashboard() {
             <AreaChart data={COST_SAVING_DATA}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(220,14%,18%)" />
               <XAxis dataKey="date" tick={{ fontSize: 9, fill: 'hsl(215,20%,50%)' }} interval={4} />
-              <YAxis tick={{ fontSize: 9, fill: 'hsl(215,20%,50%)' }} tickFormatter={v => `$${(v/1000).toFixed(0)}k`} />
+              <YAxis tick={{ fontSize: 9, fill: 'hsl(215,20%,50%)' }} tickFormatter={(v: number) => `$${(v/1000).toFixed(0)}k`} />
               <Tooltip content={<CustomTooltip />} />
               <Area type="monotone" dataKey="route" stackId="1" stroke="#42B0D5" fill="#42B0D5" fillOpacity={0.3} name="Route Opt" />
               <Area type="monotone" dataKey="inventory" stackId="1" stroke="#8b5cf6" fill="#8b5cf6" fillOpacity={0.3} name="Inventory" />
@@ -142,7 +142,7 @@ export function AnalyticsDashboard() {
             <LineChart data={TREND_DATA}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(220,14%,18%)" />
               <XAxis dataKey="date" tick={{ fontSize: 9, fill: 'hsl(215,20%,50%)' }} interval={4} />
-              <YAxis domain={[0.7, 1]} tick={{ fontSize: 9, fill: 'hsl(215,20%,50%)' }} tickFormatter={v => `${(v*100).toFixed(0)}%`} />
+              <YAxis domain={[0.7, 1]} tick={{ fontSize: 9, fill: 'hsl(215,20%,50%)' }} tickFormatter={(v: number) => `${(v*100).toFixed(0)}%`} />
               <Tooltip content={<CustomTooltip />} />
               <Line type="monotone" dataKey="health" stroke="#10b981" strokeWidth={2} dot={false} name="Health Score" />
             </LineChart>
