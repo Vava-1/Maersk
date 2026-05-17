@@ -100,7 +100,7 @@ export function SwarmChat() {
     }
 
     if (data.compliance_checks?.length > 0) {
-      parts.push('\\n**Compliance Checks:**');
+      parts.push('\n**Compliance Checks:**');
       data.compliance_checks.forEach((c: any) => {
         parts.push(`- ${c.regulation}: ${c.status.toUpperCase()} (${c.risk_level})`);
         if (c.findings?.length) parts.push(`  ${c.findings.join('; ')}`);
@@ -128,14 +128,14 @@ export function SwarmChat() {
 
     if (data.roi_impact) {
       const roi = data.roi_impact;
-      parts.push(`\\n**ROI Impact:** ${roi.metric_name}: $${roi.estimated_usd_impact?.toLocaleString() || 'N/A'}`);
+      parts.push(`\n**ROI Impact:** ${roi.metric_name}: $${roi.estimated_usd_impact?.toLocaleString() || 'N/A'}`);
     }
 
     if (parts.length === 0) {
       return JSON.stringify(data, null, 2);
     }
 
-    return parts.join('\\n');
+    return parts.join('\n');
   };
 
   return (
