@@ -2,100 +2,69 @@ import {
   Activity, Route, TrendingUp,
   AlertTriangle, CheckCircle, Clock, Zap, Server
 } from 'lucide-react';
+import { MapContainer, TileLayer, CircleMarker, Polyline, Tooltip } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
 
 const WORLD_MAP_POINTS = [
   // Asia
-  { x: 75, y: 35, label: 'Shanghai', type: 'port', status: 'active' },
-  { x: 72, y: 42, label: 'Busan', type: 'port', status: 'active' },
-  { x: 68, y: 48, label: 'Singapore', type: 'hub', status: 'active' },
+  { position: [31.2304, 121.4737], label: 'Shanghai', type: 'port', status: 'active' },
+  { position: [35.1028, 129.0403], label: 'Busan', type: 'port', status: 'active' },
+  { position: [1.2902, 103.8519], label: 'Singapore', type: 'hub', status: 'active' },
   // Europe
-  { x: 48, y: 25, label: 'Rotterdam', type: 'port', status: 'active' },
-  { x: 46, y: 32, label: 'Algeciras', type: 'port', status: 'warning' },
-  { x: 50, y: 28, label: 'Hamburg', type: 'port', status: 'active' },
+  { position: [51.9225, 4.47917], label: 'Rotterdam', type: 'port', status: 'active' },
+  { position: [36.1408, -5.4562], label: 'Algeciras', type: 'port', status: 'warning' },
+  { position: [53.5511, 9.9937], label: 'Hamburg', type: 'port', status: 'active' },
   // Africa
-  { x: 52, y: 52, label: 'Mombasa', type: 'corridor', status: 'active' },
-  { x: 53, y: 58, label: 'Dar es Salaam', type: 'port', status: 'warning' },
-  { x: 44, y: 45, label: 'Lagos', type: 'port', status: 'alert' },
-  { x: 47, y: 50, label: 'Luanda', type: 'port', status: 'active' },
-  { x: 50, y: 65, label: 'Durban', type: 'port', status: 'active' },
-  { x: 55, y: 60, label: 'Cape Town', type: 'port', status: 'active' },
+  { position: [-4.0435, 39.6682], label: 'Mombasa', type: 'corridor', status: 'active' },
+  { position: [-6.7924, 39.2083], label: 'Dar es Salaam', type: 'port', status: 'warning' },
+  { position: [6.5244, 3.3792], label: 'Lagos', type: 'port', status: 'alert' },
+  { position: [-8.8390, 13.2894], label: 'Luanda', type: 'port', status: 'active' },
+  { position: [-29.8587, 31.0218], label: 'Durban', type: 'port', status: 'active' },
+  { position: [-33.9249, 18.4241], label: 'Cape Town', type: 'port', status: 'active' },
   // Americas
-  { x: 22, y: 35, label: 'New York', type: 'port', status: 'active' },
-  { x: 20, y: 30, label: 'Panama Canal', type: 'hub', status: 'warning' },
+  { position: [40.7128, -74.0060], label: 'New York', type: 'port', status: 'active' },
+  { position: [9.1438, -79.7283], label: 'Panama Canal', type: 'hub', status: 'warning' },
   // Middle East / Suez
-  { x: 56, y: 38, label: 'Suez', type: 'hub', status: 'alert' },
-  { x: 58, y: 36, label: 'Jeddah', type: 'port', status: 'warning' },
+  { position: [29.9668, 32.5498], label: 'Suez', type: 'hub', status: 'alert' },
+  { position: [21.4858, 39.1925], label: 'Jeddah', type: 'port', status: 'warning' },
 ];
 
 const ACTIVE_ROUTES = [
-  { from: { x: 75, y: 35 }, to: { x: 56, y: 38 }, color: '#ef4444', width: 2, label: 'Shanghai -> Suez (Rerouting)' },
-  { from: { x: 75, y: 35 }, to: { x: 50, y: 65 }, color: '#42B0D5', width: 2, label: 'Shanghai -> Durban (Cape)' },
-  { from: { x: 68, y: 48 }, to: { x: 48, y: 25 }, color: '#42B0D5', width: 1.5, label: 'Singapore -> Rotterdam' },
-  { from: { x: 52, y: 52 }, to: { x: 54, y: 46 }, color: '#f59e0b', width: 2, label: 'Mombasa Corridor' },
-  { from: { x: 53, y: 58 }, to: { x: 55, y: 50 }, color: '#42B0D5', width: 1.5, label: 'Dar -> Lusaka' },
-  { from: { x: 44, y: 45 }, to: { x: 42, y: 48 }, color: '#f59e0b', width: 1.5, label: 'Lagos -> Accra' },
+  { from: [31.2304, 121.4737], to: [29.9668, 32.5498], color: '#ef4444', weight: 3, label: 'Shanghai -> Suez (Rerouting)' },
+  { from: [31.2304, 121.4737], to: [-29.8587, 31.0218], color: '#42B0D5', weight: 2, label: 'Shanghai -> Durban (Cape)' },
+  { from: [1.2902, 103.8519], to: [51.9225, 4.47917], color: '#42B0D5', weight: 2, label: 'Singapore -> Rotterdam' },
+  { from: [-4.0435, 39.6682], to: [0.3476, 32.5825], color: '#f59e0b', weight: 3, label: 'Mombasa Corridor' },
+  { from: [-6.7924, 39.2083], to: [-15.3875, 28.3228], color: '#42B0D5', weight: 2, label: 'Dar -> Lusaka' },
+  { from: [6.5244, 3.3792], to: [5.6037, -0.1870], color: '#f59e0b', weight: 2, label: 'Lagos -> Accra' },
 ];
 
 function WorldMap() {
+  const mapStyle = { height: '100%', width: '100%', background: '#090a0f' };
+  
   return (
     <div className="relative w-full aspect-[2/1] bg-[hsl(220,20%,5%)] rounded-xl overflow-hidden border border-[hsl(220,14%,18%)]">
-      {/* Grid background */}
-      <div className="absolute inset-0 grid-pattern opacity-30" />
+      <MapContainer 
+        center={[20, 45]} 
+        zoom={2} 
+        style={mapStyle}
+        zoomControl={false}
+        attributionControl={false}
+      >
+        <TileLayer
+          url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+          attribution="&copy; <a href='https://carto.com/'>carto.com</a>"
+        />
 
-      <svg viewBox="0 0 100 70" className="w-full h-full" preserveAspectRatio="xMidYMid meet">
-        {/* Continents - simplified */}
-        <defs>
-          <filter id="glow">
-            <feGaussianBlur stdDeviation="0.5" result="coloredBlur"/>
-            <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
-          </filter>
-        </defs>
-
-        {/* Simplified continent shapes */}
-        <g fill="hsl(220,14%,15%)" stroke="hsl(220,14%,20%)" strokeWidth="0.2">
-          {/* North America */}
-          <path d="M8,15 Q15,10 25,12 L28,18 Q30,22 28,28 L22,32 Q18,35 12,32 L8,28 Q5,22 8,15Z" />
-          {/* South America */}
-          <path d="M22,38 Q28,36 32,40 L30,50 Q28,58 25,62 L22,58 Q20,50 22,38Z" />
-          {/* Europe */}
-          <path d="M42,18 Q50,12 56,15 L58,22 Q56,28 50,30 L44,28 Q40,24 42,18Z" />
-          {/* Africa */}
-          <path d="M42,35 Q48,32 54,35 L58,42 Q60,50 56,58 L50,65 Q44,62 40,55 L38,45 Q40,38 42,35Z" />
-          {/* Asia */}
-          <path d="M58,15 Q72,8 82,12 L88,20 Q90,28 85,35 L78,42 Q72,45 65,42 L58,35 Q55,25 58,15Z" />
-          {/* Australia */}
-          <path d="M78,50 Q85,48 90,52 L88,58 Q84,62 78,60 L75,55 Q76,51 78,50Z" />
-        </g>
-
-        {/* Active Routes */}
         {ACTIVE_ROUTES.map((route, i) => (
-          <g key={i}>
-            <line
-              x1={route.from.x} y1={route.from.y}
-              x2={route.to.x} y2={route.to.y}
-              stroke={route.color}
-              strokeWidth={route.width * 0.15}
-              opacity="0.4"
-              filter="url(#glow)"
-            />
-            <line
-              x1={route.from.x} y1={route.from.y}
-              x2={route.to.x} y2={route.to.y}
-              stroke={route.color}
-              strokeWidth={route.width * 0.08}
-              opacity="0.8"
-            >
-              <animate
-                attributeName="stroke-dasharray"
-                values="0,10;10,0"
-                dur={`${3 + i}s`}
-                repeatCount="indefinite"
-              />
-            </line>
-          </g>
+          <Polyline 
+            key={i} 
+            positions={[route.from as [number, number], route.to as [number, number]]} 
+            pathOptions={{ color: route.color, weight: route.weight, opacity: 0.6 }}
+          >
+            <Tooltip>{route.label}</Tooltip>
+          </Polyline>
         ))}
 
-        {/* Port points */}
         {WORLD_MAP_POINTS.map((point, i) => {
           const colors = {
             active: '#42B0D5',
@@ -105,33 +74,20 @@ function WorldMap() {
           const color = colors[point.status as keyof typeof colors] || '#42B0D5';
 
           return (
-            <g key={i}>
-              <circle
-                cx={point.x} cy={point.y}
-                r="1.2"
-                fill={color}
-                opacity="0.3"
-              >
-                <animate
-                  attributeName="r"
-                  values="1.2;2;1.2"
-                  dur="2s"
-                  repeatCount="indefinite"
-                />
-              </circle>
-              <circle
-                cx={point.x} cy={point.y}
-                r="0.6"
-                fill={color}
-                filter="url(#glow)"
-              />
-            </g>
+            <CircleMarker 
+              key={i} 
+              center={point.position as [number, number]} 
+              pathOptions={{ fillColor: color, color: color, weight: 2, fillOpacity: 0.8 }} 
+              radius={6}
+            >
+              <Tooltip>{point.label} ({point.status})</Tooltip>
+            </CircleMarker>
           );
         })}
-      </svg>
+      </MapContainer>
 
       {/* Legend */}
-      <div className="absolute bottom-3 left-3 flex items-center gap-4 text-[10px] text-[hsl(215,20%,55%)]">
+      <div className="absolute bottom-3 left-3 z-[400] flex items-center gap-4 text-[10px] text-[hsl(215,20%,55%)] bg-[hsl(220,14%,12%)]/80 p-2 rounded-lg backdrop-blur">
         <div className="flex items-center gap-1.5">
           <div className="w-2 h-2 rounded-full bg-[#42B0D5]" />
           <span>Active Route</span>
@@ -147,7 +103,7 @@ function WorldMap() {
       </div>
 
       {/* Live badge */}
-      <div className="absolute top-3 right-3 flex items-center gap-2 px-2.5 py-1 bg-[hsl(220,14%,12%)]/80 backdrop-blur rounded-full border border-[hsl(220,14%,18%)]">
+      <div className="absolute top-3 right-3 z-[400] flex items-center gap-2 px-2.5 py-1 bg-[hsl(220,14%,12%)]/80 backdrop-blur rounded-full border border-[hsl(220,14%,18%)]">
         <div className="w-1.5 h-1.5 rounded-full bg-[hsl(142,76%,36%)] animate-pulse" />
         <span className="text-[10px] text-[hsl(215,20%,55%)]">Live Tracking</span>
       </div>
