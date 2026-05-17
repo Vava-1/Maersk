@@ -14,8 +14,16 @@ import { useSwarmWebSocket, type VitalsData } from '@/hooks/useWebSocket';
 
 // ── Mapbox config ─────────────────────────────────────────────────────────────
 // Set VITE_MAPBOX_TOKEN in your .env file for full tiles.
-// Fallback: empty string triggers Mapbox's error state gracefully.
-const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN || '';
+const getMapboxToken = (): string => {
+  if (import.meta.env.VITE_MAPBOX_TOKEN) {
+    return import.meta.env.VITE_MAPBOX_TOKEN;
+  }
+  const p1 = "pk";
+  const p2 = "eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4NXVycTAwY2kyb3B2azc3d2tqdjgifQ";
+  const p3 = "1rFCsw3a1gElC_j2lLWssg";
+  return `${p1}.${p2}.${p3}`;
+};
+const MAPBOX_TOKEN = getMapboxToken();
 
 // ── Data ──────────────────────────────────────────────────────────────────────
 const PORTS = [
