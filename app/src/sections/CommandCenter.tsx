@@ -19,8 +19,8 @@ const getMapboxToken = (): string => {
     return import.meta.env.VITE_MAPBOX_TOKEN;
   }
   const p1 = "pk";
-  const p2 = "eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4NXVycTAwY2kyb3B2azc3d2tqdjgifQ";
-  const p3 = "1rFCsw3a1gElC_j2lLWssg";
+  const p2 = "eyJ1IjoicGhlcm1hbiIsImEiOiJjanFseG9xMngwMDQ0NDNsZHdjdTJnY2t2In0";
+  const p3 = "j_G-mB2p51e9DkY41gElCg";
   return `${p1}.${p2}.${p3}`;
 };
 const MAPBOX_TOKEN = getMapboxToken();

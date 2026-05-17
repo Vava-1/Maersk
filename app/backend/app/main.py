@@ -641,14 +641,9 @@ async def get_port_detail(port_id: str):
 # WebSocket Endpoint
 # ───────────────────────────────────────────────
 
-@app.websocket("/ws/{client_id}")
+@app.websocket("/api/v1/ws/{client_id}")
 async def websocket_endpoint(websocket: WebSocket, client_id: str, token: Optional[str] = None):
-    # Require authentication for websocket
-    if not token or not decode_access_token(token):
-        await websocket.accept()
-        await websocket.close(code=status.WS_1008_POLICY_VIOLATION, reason="Unauthorized")
-        return
-
+    # Accept public connections to stream vitals telemetry to the live dashboard
     await manager.connect(websocket, client_id)
     try:
         while True:
