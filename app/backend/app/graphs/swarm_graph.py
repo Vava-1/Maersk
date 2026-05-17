@@ -252,9 +252,11 @@ def should_continue(state: SwarmState) -> str:
 def guardian_check(state: SwarmState) -> str:
     """Guardian decides whether to continue or heal."""
     vitals = state.get("system_vitals")
-    if vitals and vitals.overall_health_score < 0.3:
-        return "heal"
-    return "proceed"
+    if vitals:
+        score = vitals.get("overall_health_score", 1.0) if isinstance(vitals, dict) else getattr(vitals, 'overall_health_score', 1.0)
+        if score < 0.3:
+            return "guardian"
+    return route_by_orchestrator(state)
 
 
 # ───────────────────────────────────────────────
@@ -291,13 +293,16 @@ def build_swarm_graph() -> StateGraph:
     workflow.add_edge("orchestrator", "guardian")
     
     # Guardian -> routing decision
+    valid_destinations = [
+        "guardian", "analytics", "route_optimizer", "geopolitical_risk",
+        "compliance", "esg", "supplier_risk", "inventory_forecaster",
+        "incident_response", "data_integration", "africa_specialist",
+        "security_audit", "knowledge"
+    ]
     workflow.add_conditional_edges(
         "guardian",
         guardian_check,
-        {
-            "heal": "guardian",  # Loop back for healing
-            "proceed": route_by_orchestrator,
-        }
+        {node: node for node in valid_destinations}
     )
     
     # All specialized agents -> Analytics for final aggregation
