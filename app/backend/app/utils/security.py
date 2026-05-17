@@ -2,6 +2,7 @@
 Enterprise Security Module for AfriSwarm.
 Implements RBAC, cryptographic audit signing, PII redaction, and data sovereignty.
 """
+import base64
 import hashlib
 import hmac
 import secrets
@@ -25,8 +26,6 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 # Encryption key management
 _fernet_key = settings.SECRET_KEY[:32].encode() if len(settings.SECRET_KEY.encode()) >= 32 else settings.SECRET_KEY.encode().ljust(32, b'0')
 _fernet = Fernet(base64.urlsafe_b64encode(_fernet_key[:32]))
-
-import base64  # Added for Fernet key encoding
 
 
 # ───────────────────────────────────────────────
