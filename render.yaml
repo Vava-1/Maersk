@@ -25,5 +25,7 @@ services:
         value: "openai" # Recommended for cloud deployment without heavy local GPU
       - key: OPENAI_API_KEY
         sync: false # User must set this in Render dashboard
+      - key: VITE_MAPBOX_TOKEN
+        sync: false # Optional: Mapbox token to override the default public token
 
 
